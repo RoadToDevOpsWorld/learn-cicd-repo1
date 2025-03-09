@@ -65,17 +65,6 @@ build {
     "source.amazon-ebs.app-infra"
   ]
 
-  provisioner "file" {
-    source      = "src/templates/packer/scripts/harden.sh"
-    destination = "/home/ubuntu/harden.sh"
-  }
-
-  provisioner "shell" {
-    inline = [
-      "chmod +x /home/ubuntu/harden.sh",
-    ]
-  }
-
   provisioner "shell" {
     script = var.init_script
     execute_command = "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'"
