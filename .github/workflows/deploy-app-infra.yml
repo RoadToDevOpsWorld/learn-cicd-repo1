@@ -50,7 +50,7 @@ jobs:
         id: init
         run: |
           terraform init \
-            -backend-config="bucket=terraform-state-${{} github.event.inputs.account_nbr }}-us-east-1" \
+            -backend-config="bucket=terraform-state-${{ github.event.inputs.account_nbr }}-us-east-1" \
             -backend-config="key=terraform-${{ github.event.input.environment }}.tfstate" \
             -backend-config="region=us-east-1" \
             -backend-config="dynamodb_table=terraform-state-lock" \
