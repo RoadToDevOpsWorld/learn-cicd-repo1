@@ -47,7 +47,7 @@ resource "aws_launch_template" "example" {
 
 # Create an Auto Scaling Group using the existing subnet
 resource "aws_autoscaling_group" "example" {
-  desired_capacity     = 2
+  desired_capacity    = 2
   max_size            = 2
   min_size            = 2
   vpc_zone_identifier = [data.aws_subnet.existing_subnet.id]
