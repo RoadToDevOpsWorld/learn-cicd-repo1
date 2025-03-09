@@ -18,7 +18,7 @@ variable "ami_name" {
 
 variable "init_script" {
   type    = string
-  default = "scripts/init.sh"
+  default = "src/templates/packer/scripts/init.sh"
 }
 
 variable "instance_type" {
@@ -66,7 +66,7 @@ build {
   ]
 
   provisioner "file" {
-    source      = "scripts/harden.sh"
+    source      = "src/templates/packer/scripts/harden.sh"
     destination = "/home/ubuntu/harden.sh"
   }
 
