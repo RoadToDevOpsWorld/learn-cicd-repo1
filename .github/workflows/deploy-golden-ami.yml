@@ -34,7 +34,7 @@ jobs:
           version: ${{ env.PACKER_VERSION }}
       
       - name: Validate Packer Template
-        run: packer validate ami.pkr.hcl
+        run: packer validate src/templates/packer/ami.pkr.hcl
 
   build:
     needs: validate
@@ -72,7 +72,7 @@ jobs:
             -var "ami_name=${AMI_NAME}" \
             -var "instance_type=${INSTANCE_TYPE}" \
             -var "vpc_region=${REGION}" \
-            ami.pkr.hcl
+            src/templates/packer/ami.pkr.hcl
       
       - name: Extract AMI ID
         id: extract-ami
