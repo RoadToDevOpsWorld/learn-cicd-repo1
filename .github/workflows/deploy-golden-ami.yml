@@ -1,0 +1,88 @@
+name: Build and Deploy Golden AMI
+
+on:
+  workflow_dispatch:
+    inputs:
+      ami_name:
+        description: 'Custom AMI name'
+        required: false
+        default: 'app-image'
+      instance_type:
+        description: 'EC2 Instance type to use for building'
+        required: false
+        default: 't2.micro'
+      vpc_region:
+        description: 'AWS Region'
+        required: false
+        default: 'us-east-1'
+
+env:
+  PACKER_VERSION: '1.8.5'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate Packer Configuration
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+      
+      - name: Validate Packer Template
+        run: packer validate ami.pkr.hcl
+
+  build:
+    needs: validate
+    runs-on: ubuntu-latest
+    name: Build Golden AMI
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.PACKER_VERSION }}
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Build AMI
+        id: build-ami
+        run: |
+          AMI_NAME="${{ github.event.inputs.ami_name || 'app-image' }}"
+          INSTANCE_TYPE="${{ github.event.inputs.instance_type || 't2.micro' }}"
+          REGION="${{ github.event.inputs.vpc_region || 'us-east-1' }}"
+          
+          packer build \
+            -var "ami_name=${AMI_NAME}" \
+            -var "instance_type=${INSTANCE_TYPE}" \
+            -var "vpc_region=${REGION}" \
+            ami.pkr.hcl
+      
+      - name: Extract AMI ID
+        id: extract-ami
+        run: |
+          AMI_ID=$(jq -r '.builds[-1].artifact_id' manifest.json | cut -d':' -f2)
+          echo "AMI_ID=${AMI_ID}" >> $GITHUB_OUTPUT
+          echo "Created AMI with ID: ${AMI_ID}"
+      
+      - name: Tag AMI as Golden
+        run: |
+          aws ec2 create-tags \
+            --resources ${{ steps.extract-ami.outputs.AMI_ID }} \
+            --tags Key=Type,Value=Golden Key=CreatedBy,Value=GitHubActions Key=Repository,Value=${{ github.repository }}
