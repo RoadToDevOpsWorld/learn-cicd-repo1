@@ -73,6 +73,6 @@ jobs:
             -var-file="environments/${{ github.event.inputs.environment }}.tfvars" \
             -out=tfplan
       
-      # - name: Terraform Apply
-      #   id: apply
-      #   run: terraform apply -auto-approve tfplan
+      - name: Terraform Apply
+        id: apply
+        run: terraform apply -auto-approve tfplan
