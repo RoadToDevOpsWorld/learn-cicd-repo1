@@ -18,7 +18,7 @@ variable "ami_name" {
 
 variable "init_script" {
   type    = string
-  default = "scripts/init.sh"
+  default = "src/templates/packer/scripts/init.sh"
 }
 
 variable "instance_type" {
@@ -64,17 +64,6 @@ build {
   sources = [
     "source.amazon-ebs.app-infra"
   ]
-
-  provisioner "file" {
-    source      = "scripts/harden.sh"
-    destination = "/home/ubuntu/harden.sh"
-  }
-
-  provisioner "shell" {
-    inline = [
-      "chmod +x /home/ubuntu/harden.sh",
-    ]
-  }
 
   provisioner "shell" {
     script = var.init_script
