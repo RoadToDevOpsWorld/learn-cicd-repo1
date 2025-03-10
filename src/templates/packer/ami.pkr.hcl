@@ -16,9 +16,9 @@ variable "ami_name" {
   default = "app-image"
 }
 
-variable "init_script" {
+variable "playbook_file" {
   type    = string
-  default = "src/templates/packer/scripts/init.sh"
+  default = "src/templates/packer/ansible/playbook.yml"
 }
 
 variable "instance_type" {
@@ -58,16 +58,38 @@ source "amazon-ebs" "app-infra" {
 }
 
 build {
-
   name = "standard"
 
   sources = [
     "source.amazon-ebs.app-infra"
   ]
 
+  # Install Ansible
   provisioner "shell" {
-    script = var.init_script
-    execute_command = "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'"
+    inline = [
+      "sudo apt-get update",
+      "sudo apt-get install -y software-properties-common",
+      "sudo apt-add-repository -y ppa:ansible/ansible",
+      "sudo apt-get update",
+      "sudo apt-get install -y ansible"
+    ]
+  }
+
+  # Copy Ansible playbook files to the instance
+  provisioner "file" {
+    source      = "src/templates/packer/ansible/"
+    destination = "/tmp/ansible"
+  }
+
+  # Run Ansible playbook
+  provisioner "ansible-local" {
+    playbook_file = var.playbook_file
+    playbook_dir  = "src/templates/packer/ansible"
+    command       = "PYTHONUNBUFFERED=1 ansible-playbook"
+    extra_arguments = [
+      "--extra-vars", "\"ansible_python_interpreter=/usr/bin/python3\"",
+      "-v"
+    ]
   }
 
   post-processor "checksum" {
