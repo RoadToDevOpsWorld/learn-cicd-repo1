@@ -77,8 +77,8 @@ build {
 
   # Copy Ansible playbook files to the instance
   provisioner "file" {
-    source      = "ansible/"      # Local path relative to the Packer file
-    destination = "/tmp/ansible"  # Remote path
+    source      = "src/templates/packer/ansible/"
+    destination = "/tmp/ansible"
   }
 
   # Run Ansible playbook
