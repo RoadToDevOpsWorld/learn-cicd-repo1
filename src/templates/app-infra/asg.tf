@@ -63,7 +63,7 @@ resource "aws_autoscaling_group" "this" {
   desired_capacity    = 2
   max_size            = 2
   min_size            = 2
-  vpc_zone_identifier = [data.aws_subnet.existing_subnet.id]
+  vpc_zone_identifier = [data.aws_subnet.this1.id, data.aws_subnet.this2.id]
 
   launch_template {
     id      = aws_launch_template.this.id
