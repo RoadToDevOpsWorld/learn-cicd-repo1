@@ -6,6 +6,10 @@ provider "aws" {
   region = "us-east-1"
 }
 
+variable "cidr1" {}
+variable "cidr2" {}
+variable "env" {}
+
 # Fetch the latest AMI owned by the user
 data "aws_ami" "latest_owned_ami" {
   owners      = ["self"]
@@ -18,25 +22,25 @@ data "aws_ami" "latest_owned_ami" {
 }
 
 # Lookup an existing subnet with a specific CIDR block
-data "aws_subnet" "existing_subnet" {
+data "aws_subnet" "this1" {
   filter {
     name   = "cidr-block"
-    values = ["172.31.0.0/20"]
+    values = [var.cidr1]
   }
 }
 
 # Lookup an existing subnet with a specific CIDR block
-data "aws_subnet" "existing_subnet1" {
+data "aws_subnet" "this2" {
   filter {
     name   = "cidr-block"
-    values = ["172.31.16.0/20"]
+    values = [var.cidr2]
   }
 }
 
 
 # Create a Launch Template
-resource "aws_launch_template" "example" {
-  name_prefix   = "example-launch-template"
+resource "aws_launch_template" "this" {
+  name_prefix   = "launch-template-01"
   image_id      = data.aws_ami.latest_owned_ami.id
   instance_type = "t2.micro"
 
@@ -49,33 +53,33 @@ resource "aws_launch_template" "example" {
     resource_type = "instance"
 
     tags = {
-      Name = "ExampleInstance"
+      Name = "ASG-Instance"
     }
   }
 }
 
 # Create an Auto Scaling Group using the existing subnet
-resource "aws_autoscaling_group" "example" {
+resource "aws_autoscaling_group" "this" {
   desired_capacity    = 2
   max_size            = 2
   min_size            = 2
   vpc_zone_identifier = [data.aws_subnet.existing_subnet.id]
 
   launch_template {
-    id      = aws_launch_template.example.id
+    id      = aws_launch_template.this.id
     version = "$Latest"
   }
 
   tag {
     key                 = "Name"
-    value               = "ExampleASG"
+    value               = "ASG"
     propagate_at_launch = true
   }
 }
 
 # Security Group
-resource "aws_security_group" "example" {
-  name_prefix = "example-sg"
+resource "aws_security_group" "this1" {
+  name_prefix = "alb-sg"
 
   ingress {
     from_port   = 80
@@ -92,25 +96,25 @@ resource "aws_security_group" "example" {
   }
 }
 
-resource "aws_security_group" "ec2" {
+resource "aws_security_group" "this2" {
   name_prefix = "ec2-sg"
 }
 
-resource "aws_vpc_security_group_ingress_rule" "example" {
-  security_group_id = aws_security_group.ec2.id
-  referenced_security_group_id = aws_security_group.example.id
+resource "aws_vpc_security_group_ingress_rule" "this1" {
+  security_group_id = aws_security_group.this2.id
+  referenced_security_group_id = aws_security_group.this1.id
   from_port   = 80
   ip_protocol = "tcp"
   to_port     = 80
 }
 
 
-resource "aws_lb" "alb" {
-  name               = "test-lb-tf"
+resource "aws_lb" "this" {
+  name               = "alb-tf-01"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.example.id]
-  subnets            = [data.aws_subnet.existing_subnet.id, data.aws_subnet.existing_subnet1.id]
+  security_groups    = [aws_security_group.1.id]
+  subnets            = [data.aws_subnet.this1.id, data.aws_subnet.this2.id]
 
   enable_deletion_protection = true
 
@@ -121,16 +125,16 @@ resource "aws_lb" "alb" {
   # }
 
   tags = {
-    Environment = "production"
+    Environment = var.env
   }
 }
 
 # Create a target group for the ALB
-resource "aws_lb_target_group" "example" {
-  name     = "example-target-group"
+resource "aws_lb_target_group" "this" {
+  name     = "target-group-01"
   port     = 80
   protocol = "HTTP"
-  vpc_id   = data.aws_subnet.existing_subnet.vpc_id
+  vpc_id   = data.aws_subnet.this1.vpc_id
   
   health_check {
     enabled             = true
@@ -145,12 +149,12 @@ resource "aws_lb_target_group" "example" {
 
 # Create a listener on port 80 for the ALB
 resource "aws_lb_listener" "front_end" {
-  load_balancer_arn = aws_lb.alb.arn
+  load_balancer_arn = aws_lb.this.arn
   port              = "80"
   protocol          = "HTTP"
   
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.example.arn
+    target_group_arn = aws_lb_target_group.this.arn
   }
 }
