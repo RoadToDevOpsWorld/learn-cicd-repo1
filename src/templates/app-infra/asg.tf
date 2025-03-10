@@ -25,6 +25,15 @@ data "aws_subnet" "existing_subnet" {
   }
 }
 
+# Lookup an existing subnet with a specific CIDR block
+data "aws_subnet" "existing_subnet1" {
+  filter {
+    name   = "cidr-block"
+    values = ["172.31.16.0/20"]
+  }
+}
+
+
 # Create a Launch Template
 resource "aws_launch_template" "example" {
   name_prefix   = "example-launch-template"
@@ -101,15 +110,15 @@ resource "aws_lb" "alb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.example.id]
-  subnets            = [for subnet in aws_subnet.public : subnet.id]
+  subnets            = [data.existing_subnet.existing_subnet.id, data.aws_subnet.existing_subnet1.id]
 
   enable_deletion_protection = true
 
-  access_logs {
-    bucket  = aws_s3_bucket.lb_logs.id
-    prefix  = "test-lb"
-    enabled = true
-  }
+  # access_logs {
+  # bucket  = aws_s3_bucket.lb_logs.id
+  #  prefix  = "test-lb"
+  #  enabled = true
+  # }
 
   tags = {
     Environment = "production"
