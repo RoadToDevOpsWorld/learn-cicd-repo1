@@ -88,13 +88,13 @@
         line: "* hard core 0"
         state: present
 
-    - name: Set filesystem mount options
-      mount:
-        path: /tmp
-        src: tmpfs
-        fstype: tmpfs
-        opts: defaults,nodev,nosuid,noexec
-        state: mounted
+    # - name: Set filesystem mount options
+    #   mount:
+    #     path: /tmp
+    #     src: tmpfs
+    #     fstype: tmpfs
+    #     opts: defaults,nodev,nosuid,noexec
+    #     state: mounted
 
     - name: Disable unnecessary services
       service:
@@ -160,7 +160,7 @@
 
     - name: Deploy static application files
       copy:
-        src: src/templates/packer/ansible/files/
+        src: "{{ playbook_dir }}/files/"
         dest: /var/www/myapp/
         owner: www-data
         group: www-data
@@ -169,7 +169,7 @@
     # Configure Virtual Host for Application
     - name: Create Apache virtual host
       template:
-        src: src/templates/packer/ansible/templates/vhost.conf.j2
+        src: ./templates/vhost.conf.j2
         dest: /etc/apache2/sites-available/myapp.conf
       notify: Restart Apache
 
