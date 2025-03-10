@@ -77,14 +77,14 @@ build {
 
   # Copy Ansible playbook files to the instance
   provisioner "file" {
-    source      = "src/templates/packer/ansible/"
-    destination = "/tmp/ansible"
+    source      = "ansible/"      # Local path relative to the Packer file
+    destination = "/tmp/ansible"  # Remote path
   }
 
   # Run Ansible playbook
   provisioner "ansible-local" {
     playbook_file = var.playbook_file
-    playbook_dir  = "src/templates/packer/ansible"
+    # playbook_dir  = "src/templates/packer/ansible"
     command       = "PYTHONUNBUFFERED=1 ansible-playbook"
     extra_arguments = [
       "--extra-vars", "\"ansible_python_interpreter=/usr/bin/python3\"",
