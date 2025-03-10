@@ -160,7 +160,7 @@
 
     - name: Deploy static application files
       copy:
-        src: src/templates/packer/ansible/files/
+        src: ./files/
         dest: /var/www/myapp/
         owner: www-data
         group: www-data
@@ -169,7 +169,7 @@
     # Configure Virtual Host for Application
     - name: Create Apache virtual host
       template:
-        src: src/templates/packer/ansible/templates/vhost.conf.j2
+        src: ./templates/vhost.conf.j2
         dest: /etc/apache2/sites-available/myapp.conf
       notify: Restart Apache
 
