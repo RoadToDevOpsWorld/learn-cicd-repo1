@@ -124,3 +124,33 @@ resource "aws_lb" "alb" {
     Environment = "production"
   }
 }
+
+# Create a target group for the ALB
+resource "aws_lb_target_group" "example" {
+  name     = "example-target-group"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = data.aws_subnet.existing_subnet.vpc_id
+  
+  health_check {
+    enabled             = true
+    path                = "/"
+    port                = "traffic-port"
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    timeout             = 5
+    interval            = 30
+  }
+}
+
+# Create a listener on port 80 for the ALB
+resource "aws_lb_listener" "front_end" {
+  load_balancer_arn = aws_lb.alb.arn
+  port              = "80"
+  protocol          = "HTTP"
+  
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.example.arn
+  }
+}
