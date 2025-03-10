@@ -85,7 +85,7 @@ build {
   provisioner "ansible-local" {
     playbook_file = var.playbook_file
     playbook_dir  = "ansible/"
-    copy_files   = ["files", "templates"]
+    playbook_paths = ["files", "templates"]
     command       = "PYTHONUNBUFFERED=1 ansible-playbook"
     extra_arguments = [
       "--extra-vars", "\"ansible_python_interpreter=/usr/bin/python3\"",
