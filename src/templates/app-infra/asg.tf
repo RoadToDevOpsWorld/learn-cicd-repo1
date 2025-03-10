@@ -64,6 +64,7 @@ resource "aws_autoscaling_group" "this" {
   max_size            = 2
   min_size            = 2
   vpc_zone_identifier = [data.aws_subnet.this1.id, data.aws_subnet.this2.id]
+  target_group_arns = [aws_lb_target_group.this.arn]
 
   launch_template {
     id      = aws_launch_template.this.id
