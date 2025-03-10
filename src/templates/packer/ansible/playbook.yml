@@ -160,7 +160,7 @@
 
     - name: Deploy static application files
       copy:
-        src: ./files/
+        src: "{{ playbook_dir }}/files/"
         dest: /var/www/myapp/
         owner: www-data
         group: www-data
