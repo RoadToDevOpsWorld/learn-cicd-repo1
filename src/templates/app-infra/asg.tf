@@ -25,6 +25,15 @@ data "aws_subnet" "existing_subnet" {
   }
 }
 
+# Lookup an existing subnet with a specific CIDR block
+data "aws_subnet" "existing_subnet1" {
+  filter {
+    name   = "cidr-block"
+    values = ["172.31.16.0/20"]
+  }
+}
+
+
 # Create a Launch Template
 resource "aws_launch_template" "example" {
   name_prefix   = "example-launch-template"
@@ -101,17 +110,47 @@ resource "aws_lb" "alb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.example.id]
-  subnets            = [for subnet in aws_subnet.public : subnet.id]
+  subnets            = [data.aws_subnet.existing_subnet.id, data.aws_subnet.existing_subnet1.id]
 
   enable_deletion_protection = true
 
-  access_logs {
-    bucket  = aws_s3_bucket.lb_logs.id
-    prefix  = "test-lb"
-    enabled = true
-  }
+  # access_logs {
+  # bucket  = aws_s3_bucket.lb_logs.id
+  #  prefix  = "test-lb"
+  #  enabled = true
+  # }
 
   tags = {
     Environment = "production"
+  }
+}
+
+# Create a target group for the ALB
+resource "aws_lb_target_group" "example" {
+  name     = "example-target-group"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = data.aws_subnet.existing_subnet.vpc_id
+  
+  health_check {
+    enabled             = true
+    path                = "/"
+    port                = "traffic-port"
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    timeout             = 5
+    interval            = 30
+  }
+}
+
+# Create a listener on port 80 for the ALB
+resource "aws_lb_listener" "front_end" {
+  load_balancer_arn = aws_lb.alb.arn
+  port              = "80"
+  protocol          = "HTTP"
+  
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.example.arn
   }
 }
