@@ -1,0 +1,197 @@
+---
+- name: Harden AMI and Deploy Static Application
+  hosts: all
+  become: yes
+  tasks:
+    # System Updates
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+        autoclean: yes
+
+    # SSH Hardening
+    - name: Configure SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      loop:
+        - { regexp: '^#?PermitRootLogin', line: 'PermitRootLogin no' }
+        - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }
+        - { regexp: '^#?X11Forwarding', line: 'X11Forwarding no' }
+        - { regexp: '^#?MaxAuthTries', line: 'MaxAuthTries 3' }
+        - { regexp: '^#?AllowTcpForwarding', line: 'AllowTcpForwarding no' }
+      notify: Restart SSH
+
+    # Set Strong Password Policies
+    - name: Configure password policy
+      lineinfile:
+        path: /etc/login.defs
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - { regexp: '^PASS_MAX_DAYS', line: 'PASS_MAX_DAYS   90' }
+        - { regexp: '^PASS_MIN_DAYS', line: 'PASS_MIN_DAYS   7' }
+        - { regexp: '^PASS_WARN_AGE', line: 'PASS_WARN_AGE   14' }
+
+    # Set up automatic security updates
+    - name: Install unattended-upgrades
+      apt:
+        name: unattended-upgrades
+        state: present
+
+    - name: Configure unattended-upgrades
+      copy:
+        dest: /etc/apt/apt.conf.d/50unattended-upgrades
+        content: |
+          Unattended-Upgrade::Allowed-Origins {
+            "${distro_id}:${distro_codename}";
+            "${distro_id}:${distro_codename}-security";
+            "${distro_id}ESMApps:${distro_codename}-apps-security";
+            "${distro_id}ESM:${distro_codename}-infra-security";
+          };
+          Unattended-Upgrade::Package-Blacklist {};
+          Unattended-Upgrade::Remove-Unused-Dependencies "true";
+          Unattended-Upgrade::Automatic-Reboot "false";
+
+    # Configure Firewall with UFW
+    - name: Install UFW
+      apt:
+        name: ufw
+        state: present
+
+    - name: Configure UFW rules
+      ufw:
+        rule: "{{ item.rule }}"
+        port: "{{ item.port }}"
+        proto: "{{ item.proto }}"
+      loop:
+        - { rule: 'allow', port: '22', proto: 'tcp' }
+        - { rule: 'allow', port: '80', proto: 'tcp' }
+        - { rule: 'allow', port: '443', proto: 'tcp' }
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+        policy: deny
+
+    # Security Hardening
+    - name: Disable core dumps
+      lineinfile:
+        path: /etc/security/limits.conf
+        line: "* hard core 0"
+        state: present
+
+    - name: Set filesystem mount options
+      mount:
+        path: /tmp
+        src: tmpfs
+        fstype: tmpfs
+        opts: defaults,nodev,nosuid,noexec
+        state: mounted
+
+    - name: Disable unnecessary services
+      service:
+        name: "{{ item }}"
+        enabled: no
+        state: stopped
+      loop:
+        - avahi-daemon
+        - cups
+      ignore_errors: yes
+
+    # Configure Apache with Security Enhancements
+    - name: Install Apache2
+      apt:
+        name: apache2
+        state: present
+
+    - name: Remove Apache server signature
+      lineinfile:
+        path: /etc/apache2/conf-available/security.conf
+        regexp: '^ServerSignature'
+        line: 'ServerSignature Off'
+      notify: Restart Apache
+
+    - name: Remove Apache server tokens
+      lineinfile:
+        path: /etc/apache2/conf-available/security.conf
+        regexp: '^ServerTokens'
+        line: 'ServerTokens Prod'
+      notify: Restart Apache
+
+    - name: Enable Apache security modules
+      apache2_module:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - headers
+        - ssl
+      notify: Restart Apache
+
+    # Configure ModSecurity (Web Application Firewall)
+    - name: Install ModSecurity
+      apt:
+        name: 
+          - libapache2-mod-security2
+          - modsecurity-crs
+        state: present
+      
+    - name: Enable ModSecurity
+      command: a2enmod security2
+      args:
+        creates: /etc/apache2/mods-enabled/security2.load
+      notify: Restart Apache
+
+    # Deploy Static Application
+    - name: Create document directory
+      file:
+        path: /var/www/myapp
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Deploy static application files
+      copy:
+        src: files/
+        dest: /var/www/myapp/
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    # Configure Virtual Host for Application
+    - name: Create Apache virtual host
+      template:
+        src: src/templates/packer/scripts/templates/vhost.conf.j2
+        dest: /etc/apache2/sites-available/myapp.conf
+      notify: Restart Apache
+
+    - name: Enable virtual host
+      command: a2ensite myapp.conf
+      args:
+        creates: /etc/apache2/sites-enabled/myapp.conf
+      notify: Restart Apache
+
+    - name: Disable default site
+      command: a2dissite 000-default.conf
+      args:
+        removes: /etc/apache2/sites-enabled/000-default.conf
+      notify: Restart Apache
+
+  handlers:
+    - name: Restart SSH
+      service:
+        name: sshd
+        state: restarted
+
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
