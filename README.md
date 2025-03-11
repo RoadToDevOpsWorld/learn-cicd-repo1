@@ -14,5 +14,7 @@
 
     Tools used are Terraform, Github Actions
 
-    Services/Resources used are: ASG, ALB(Listeners/Target Groups), Seccurity Group, AMI, etc.
+    Services/Resources used are: ASG, ALB(Listeners/Target Groups), Security Group, AMI, etc.
 
+
+![Architecture](images/Arch.png)
