@@ -46,7 +46,7 @@ resource "aws_launch_template" "this" {
 
   network_interfaces {
     associate_public_ip_address = true
-    security_groups             = [aws_security_group.example.id]
+    security_groups             = [aws_security_group.this2.id]
   }
 
   tag_specifications {
@@ -63,7 +63,8 @@ resource "aws_autoscaling_group" "this" {
   desired_capacity    = 2
   max_size            = 2
   min_size            = 2
-  vpc_zone_identifier = [data.aws_subnet.existing_subnet.id]
+  vpc_zone_identifier = [data.aws_subnet.this1.id, data.aws_subnet.this2.id]
+  target_group_arns = [aws_lb_target_group.this.arn]
 
   launch_template {
     id      = aws_launch_template.this.id
@@ -113,7 +114,7 @@ resource "aws_lb" "this" {
   name               = "alb-tf-01"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.1.id]
+  security_groups    = [aws_security_group.this1.id]
   subnets            = [data.aws_subnet.this1.id, data.aws_subnet.this2.id]
 
   enable_deletion_protection = true
