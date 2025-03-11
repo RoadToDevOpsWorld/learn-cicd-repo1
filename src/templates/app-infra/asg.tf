@@ -40,7 +40,7 @@ data "aws_subnet" "this2" {
 
 # Create a Launch Template
 resource "aws_launch_template" "this" {
-  name_prefix   = "launch-template-${env}"
+  name_prefix   = "launch-template-${var.env}"
   image_id      = data.aws_ami.latest_owned_ami.id
   instance_type = "t2.micro"
 
@@ -60,7 +60,7 @@ resource "aws_launch_template" "this" {
 
 # Create an Auto Scaling Group using the existing subnet
 resource "aws_autoscaling_group" "this" {
-  name                = "asg-${env}"
+  name                = "asg-${var.env}"
   desired_capacity    = 2
   max_size            = 2
   min_size            = 2
@@ -74,14 +74,14 @@ resource "aws_autoscaling_group" "this" {
 
   tag {
     key                 = "Name"
-    value               = "ASG-${env}"
+    value               = "ASG-${var.env}"
     propagate_at_launch = true
   }
 }
 
 # Security Group
 resource "aws_security_group" "this1" {
-  name_prefix = "alb-sg-${env}"
+  name_prefix = "alb-sg-${var.env}"
 
   ingress {
     from_port   = 80
@@ -99,7 +99,7 @@ resource "aws_security_group" "this1" {
 }
 
 resource "aws_security_group" "this2" {
-  name_prefix = "ec2-sg-${env}"
+  name_prefix = "ec2-sg-${var.env}"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "this1" {
@@ -112,7 +112,7 @@ resource "aws_vpc_security_group_ingress_rule" "this1" {
 
 
 resource "aws_lb" "this" {
-  name               = "alb-tf-${env}"
+  name               = "alb-tf-${var.env}"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.this1.id]
@@ -133,7 +133,7 @@ resource "aws_lb" "this" {
 
 # Create a target group for the ALB
 resource "aws_lb_target_group" "this" {
-  name     = "target-group-${env}"
+  name     = "target-group-${var.env}"
   port     = 80
   protocol = "HTTP"
   vpc_id   = data.aws_subnet.this1.vpc_id
