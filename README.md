@@ -14,5 +14,11 @@
 
     Tools used are Terraform, Github Actions
 
-    Services/Resources used are: ASG, ALB(Listeners/Target Groups), Seccurity Group, AMI, etc.
+    Services/Resources used are: ASG, ALB(Listeners/Target Groups), Security Group, AMI, etc.
+
+![Architecture](images/Arch.png)
+
+By default on merge to main, deployment starts for Dev Environment
+
+Staging & Prod environment are deployed through workflow dispatch.
 
