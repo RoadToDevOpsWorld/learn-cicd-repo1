@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     
     env:
-      TF_VAR_environment: ${{ github.event.inputs.environment }}
+      TF_VAR_environment: ${{ github.event.inputs.environment || 'dev' }}
     
     defaults:
       run:
