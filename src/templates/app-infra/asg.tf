@@ -118,7 +118,7 @@ resource "aws_lb" "this" {
   security_groups    = [aws_security_group.this1.id]
   subnets            = [data.aws_subnet.this1.id, data.aws_subnet.this2.id]
 
-  enable_deletion_protection = true
+  enable_deletion_protection = false
 
   # access_logs {
   # bucket  = aws_s3_bucket.lb_logs.id
