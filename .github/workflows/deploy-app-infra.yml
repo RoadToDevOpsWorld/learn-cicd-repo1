@@ -1,6 +1,12 @@
 name: Terraform Workflow
 
 on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       environment:
@@ -74,5 +80,6 @@ jobs:
             -out=tfplan
       
       - name: Terraform Apply
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         id: apply
         run: terraform apply -auto-approve tfplan
